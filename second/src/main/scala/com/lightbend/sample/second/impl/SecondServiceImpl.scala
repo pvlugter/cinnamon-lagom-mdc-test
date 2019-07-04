@@ -1,6 +1,7 @@
 package com.lightbend.sample.second.impl
 
 import akka.Done
+import akka.actor.ActorSystem
 import akka.stream.scaladsl.Flow
 import com.lightbend.lagom.scaladsl.api.ServiceCall
 import com.lightbend.lagom.scaladsl.api.broker.Topic
@@ -11,13 +12,17 @@ import com.lightbend.sample.second.api.{ SecondMessage, SecondService }
 import org.slf4j.{ LoggerFactory, MDC }
 import scala.concurrent.ExecutionContext
 
-class SecondServiceImpl(persistentEntityRegistry: PersistentEntityRegistry, firstService: FirstService)(implicit ec: ExecutionContext) extends SecondService {
+class SecondServiceImpl(persistentEntityRegistry: PersistentEntityRegistry, firstService: FirstService, system: ActorSystem)(implicit ec: ExecutionContext) extends SecondService {
   val log = LoggerFactory.getLogger(getClass)
 
   firstService.firstTopic.subscribe.atLeastOnce(
     Flow[FirstMessage].mapAsync(1) {
       case FirstMessage(id) =>
         MDC.put("id", id)
+        // force a residual MDC on to the lagom persistence dispatcher (single thread)
+        system.dispatchers.lookup("lagom.persistence.dispatcher").execute(new Runnable {
+          def run = MDC.put("id", "residual-" + id)
+        })
         val ref = persistentEntityRegistry.refFor[SecondEntity](id)
         ref.ask(UpdateSecond(id))
     }.map(_ => Done)
