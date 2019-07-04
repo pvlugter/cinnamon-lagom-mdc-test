@@ -38,7 +38,10 @@ class SecondServiceImpl(persistentEntityRegistry: PersistentEntityRegistry, firs
     persistentEntityRegistry.eventStream(SecondEvent.Tag, fromOffset).map {
       case EventStreamElement(_, SecondUpdated(id), offset) =>
         log.info(s"$id - message")
-        if (MDC.get("id") ne null) log.error(s"!!! unexpected MDC")
+        if (MDC.get("id") ne null) {
+          log.error(s"!!! Unexpected MDC with origin = " + MDC.get("cinnamon.debug.origin"))
+          // log.error(s"!!! Unexpected MDC with stacktraces = " + MDC.get("cinnamon.debug.stacktraces"))
+        }
         SecondMessage(id) -> offset
     }
   }

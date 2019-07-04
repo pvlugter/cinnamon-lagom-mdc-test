@@ -47,6 +47,7 @@ lazy val second = project
   .in(file("second"))
   .enablePlugins(LagomScala, Cinnamon)
   .settings(serviceSettings)
+  //.settings(Test / run / javaOptions += "-Dcinnamon.mdc.debug.stacktraces=true")
   .dependsOn(`second-api`, `first-api`)
 
 lazy val `third-api` = project
